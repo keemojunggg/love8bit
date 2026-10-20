@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Our Little Heart World</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root { --floor-height: 112px; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: "Trebuchet MS", system-ui, sans-serif;
+      background: linear-gradient(180deg, #9daeff 0%, #c6a5ff 52%, #f28ee0 100%);
+      color: #fff;
+    }
+    .world { position: relative; width: 100%; height: 100dvh; overflow: hidden; isolation: isolate; }
+    .sky-glow {
+      position: absolute; inset: 0 0 var(--floor-height);
+      background:
+        radial-gradient(ellipse at 15% 40%, rgba(255,255,255,.22), transparent 28%),
+        radial-gradient(ellipse at 85% 22%, rgba(255,255,255,.18), transparent 25%);
+      z-index: -3;
+    }
+    .cloud {
+      position: absolute; width: clamp(220px, 35vw, 510px); height: 100px;
+      background: #fffaf9; border-radius: 55px; opacity: .96;
+      filter: drop-shadow(0 5px 0 #ffd36d);
+      z-index: -2;
+    }
+    .cloud::before, .cloud::after { content:""; position:absolute; background:inherit; border-radius:50%; }
+    .cloud::before { width: 43%; height: 150%; left: 12%; bottom: 10%; }
+    .cloud::after { width: 52%; height: 185%; right: 12%; bottom: 0; }
+    .cloud.one { top: 18%; left: 5%; transform: scale(.9); }
+    .cloud.two { top: 39%; right: 3%; transform: scale(1.05); }
+    .cloud.three { top: 55%; left: 37%; transform: scale(.58); opacity:.8; }
+    .balloon-layer { position:absolute; inset:0; pointer-events:none; z-index:-1; }
+    .balloon {
+      --size: 54px; --drift: 35px; --duration: 13s;
+      position:absolute; bottom:-100px; left:var(--left); width:var(--size); height:calc(var(--size) * 1.12);
+      border-radius: 52% 48% 48% 48%; background:var(--color, #ef2850);
+      transform: rotate(12deg); opacity:.95;
+      box-shadow: inset -8px -9px 0 rgba(130,0,35,.12), inset 7px 7px 0 rgba(255,255,255,.23);
+      animation: rise var(--duration) linear infinite;
+      animation-delay:var(--delay, 0s);
+    }
+    .balloon::before { content:""; position:absolute; width:20%; height:20%; top:10%; left:18%; border-radius:50%; background:rgba(255,255,255,.23); transform:rotate(-30deg); }
+    .balloon::after { content:""; position:absolute; left:48%; top:98%; height:48px; width:1px; background:rgba(255,255,255,.7); transform:rotate(-4deg); transform-origin:top; }
+    @keyframes rise {
+      0% { transform:translate(0, 0) rotate(10deg); }
+      50% { transform:translate(var(--drift), -58vh) rotate(-8deg); }
+      100% { transform:translate(calc(var(--drift) * -0.45), -125vh) rotate(9deg); }
+    }
+    .heart {
+      position:absolute; left:var(--x); top:var(--y); color:var(--c,#ef2552);
+      font-size:var(--s, 60px); line-height:1; opacity:.94;
+      text-shadow: 2px 3px 0 rgba(130,0,45,.14), inset 0 0 5px white;
+      animation: heartBob 3.5s ease-in-out infinite;
+      animation-delay:var(--delay,0s); user-select:none;
+    }
+    @keyframes heartBob { 0%,100%{transform:translateY(0) rotate(-7deg)} 50%{transform:translateY(-13px) rotate(6deg)} }
+    .title {
+      position:absolute; top:7%; left:50%; transform:translateX(-50%);
+      width:max-content; max-width:90%; text-align:center; z-index:2;
+      color:#fff; text-shadow:0 3px 0 #d75ba8, 0 6px 16px rgba(115,40,140,.3);
+      font-size:clamp(22px,4vw,42px); letter-spacing:.04em;
+    }
+    .subtitle { display:block; margin-top:7px; font-size:clamp(12px,1.5vw,16px); letter-spacing:.12em; }
+    .arch {
+      position:absolute; left:50%; bottom:var(--floor-height); transform:translateX(-50%);
+      width:min(45vw, 520px); height:min(42vh, 330px); min-width:280px;
+      border:14px solid rgba(255,255,255,.82); border-bottom:0; border-radius:18px 18px 0 0;
+      box-shadow: inset 0 0 0 5px rgba(246,151,224,.8), 0 0 0 3px rgba(187,94,205,.45);
+      opacity:.85; pointer-events:none;
+    }
+    .arch::before {
+      content:""; position:absolute; inset:0;
+      background:repeating-linear-gradient(90deg, transparent 0 42px, rgba(255,255,255,.12) 42px 46px),
+                 repeating-linear-gradient(0deg, transparent 0 42px, rgba(255,255,255,.12) 42px 46px);
+    }
+    .platform {
+      position:absolute; bottom:0; left:0; right:0; height:var(--floor-height);
+      border-top:7px solid #fff; background:repeating-linear-gradient(90deg,#fff7fd 0 63px,#eeb5e5 64px 68px),
+      linear-gradient(#f7c9ee,#f7c9ee);
+      box-shadow:0 -5px 0 rgba(221,111,202,.35);
+    }
+    .platform::before {
+      content:""; position:absolute; left:0; right:0; top:0; height:58px;
+      background:repeating-linear-gradient(90deg, transparent 0 62px, #dedde8 63px 67px),
+                  repeating-linear-gradient(0deg, #fff 0 58px, #dddce8 59px 64px);
+      border-bottom:5px solid #e5a8da;
+    }
+    .platform::after {
+      content:""; position:absolute; left:0; right:0; bottom:0; height:48px;
+      background:repeating-linear-gradient(135deg,#6c607a 0 8px,#8a7d96 8px 13px,#6c607a 13px 19px);
+      border-top:5px solid #b48ab8;
+    }
+    .couple-track { position:absolute; left:5%; right:5%; bottom:var(--floor-height); height:116px; }
+    .character {
+      position:absolute; bottom:0; width:54px; height:88px;
+      animation: walkAcross 13s linear infinite alternate;
+      filter: drop-shadow(0 3px 1px rgba(70,30,90,.2));
+    }
+    .character.girl { animation-delay:-6.5s; animation-direction:alternate-reverse; }
+    .head {
+      position:absolute; top:0; left:11px; width:33px; height:34px; border-radius:45% 45% 48% 48%;
+      background:#ffe0c7; border:3px solid #45364f; z-index:3;
+    }
+    .hair {
+      position:absolute; top:-5px; left:7px; width:40px; height:30px; border-radius:50% 50% 25% 25%;
+      background:#29253c; z-index:4; border:2px solid #43324f;
+    }
+    .face { position:absolute; top:14px; left:19px; z-index:5; color:#49304c; font-size:12px; letter-spacing:4px; }
+    .body {
+      position:absolute; top:31px; left:8px; width:40px; height:37px;
+      background:#8dd6ff; border:3px solid #493954; border-radius:10px 10px 7px 7px; z-index:2;
+      transform-origin:50% 100%; animation:walk-bob .6s ease-in-out infinite;
+    }
+    .arms { position:absolute; top:35px; left:4px; width:46px; height:24px; z-index:1; pointer-events:none; }
+    .arms::before,.arms::after {
+      content:""; position:absolute; top:0; width:8px; height:21px; border:2px solid #493954;
+      border-radius:5px; background:#ffe0c7; transform-origin:50% 2px;
+      animation:arm-swing .6s ease-in-out infinite alternate;
+    }
+    .arms::before { left:2px; }
+    .arms::after { right:2px; animation-direction:alternate-reverse; }
+    .legs { position:absolute; bottom:0; left:11px; width:32px; height:22px; z-index:1; }
+    .leg {
+      position:absolute; bottom:6px; width:9px; height:17px; border:2px solid #493954;
+      border-radius:3px 3px 2px 2px; background:#8bd9ff; transform-origin:50% 2px;
+      animation:leg-step .6s ease-in-out infinite;
+    }
+    .leg.left { left:1px; }
+    .leg.right { right:1px; animation-delay:-.3s; }
+    .shoe {
+      position:absolute; bottom:-5px; left:-5px; width:14px; height:7px;
+      border:1px solid #493954; border-radius:6px 7px 3px 3px; background:#fff;
+    }
+    .girl .body { animation-delay:-.3s; }
+    .girl .leg.left,.girl .arms::before { animation-delay:-.3s; }
+    .girl .leg.right,.girl .arms::after { animation-delay:0s; }
+    .girl .leg { background:#ff91c9; }
+    @keyframes leg-step {
+      0%,100% { transform:translateY(0) rotate(-12deg) }
+      50% { transform:translateY(-2px) rotate(12deg) }
+    }
+    @keyframes walk-bob { 0%,100% { translate:0 0 } 50% { translate:0 -1px } }
+    @keyframes arm-swing { from { transform:rotate(18deg) } to { transform:rotate(-18deg) } }
+    .girl .hair { background:#5b304c; width:46px; height:42px; left:4px; border-radius:48% 48% 35% 35%; }
+    .girl .hair::after { content:""; position:absolute; right:-3px; top:12px; width:11px; height:38px; border-radius:0 0 8px 8px; background:#5b304c; border:2px solid #43324f; }
+    .girl .body { background:#ff91c9; }
+    .boy .body { background:#8bd9ff; }
+    .girl .head { left:10px; }
+    .girl .face { left:18px; }
+    .name-tag {
+      position:absolute; bottom:94px; left:50%; transform:translateX(-50%); white-space:nowrap;
+      font-size:12px; font-weight:bold; color:#fff; text-shadow:1px 2px #b84fa2;
+    }
+    @keyframes walkAcross { from { left:0; } to { left:calc(100% - 54px); } }
+    .hint {
+      position:absolute; left:50%; bottom:calc(var(--floor-height) + 8px); transform:translateX(-50%);
+      color:#fff; font-size:11px; letter-spacing:.12em; opacity:.8; white-space:nowrap;
+      text-shadow:1px 2px 3px #a54caa;
+    }
+    .scene {
+      position:absolute; inset:0; overflow:hidden;
+      opacity:0; visibility:hidden; pointer-events:none;
+      transition:opacity .65s ease, visibility 0s linear .65s;
+    }
+    .scene.is-active {
+      opacity:1; visibility:visible; pointer-events:auto;
+      transition:opacity .65s ease;
+    }
+    .scene:not(.is-active) * { animation-play-state:paused !important; }
+    .outdoor-scene { background:linear-gradient(180deg,#9daeff 0%,#c6a5ff 52%,#f28ee0 100%); }
+    .chest-button {
+      position:absolute; z-index:3; left:50%; bottom:var(--floor-height);
+      width:88px; height:72px; padding:0; border:0; background:transparent; cursor:pointer;
+      transform:translateX(-50%); filter:drop-shadow(0 5px 2px rgba(100,55,110,.28));
+    }
+    .chest-box {
+      position:absolute; left:8px; right:8px; bottom:0; height:40px; overflow:hidden;
+      border:4px solid #583622; border-radius:4px 4px 7px 7px;
+      background:repeating-linear-gradient(0deg,#8b542f 0 2px,#b77a43 2px 10px,#d19a59 10px 12px);
+      box-shadow:inset 0 -5px 0 rgba(67,37,24,.35),inset 0 0 0 2px rgba(245,195,117,.28);
+      animation:chest-idle 2.2s ease-in-out infinite;
+    }
+    .chest-box::before {
+      content:""; position:absolute; inset:3px 0;
+      background:repeating-linear-gradient(0deg,transparent 0 8px,rgba(75,42,25,.55) 8px 10px),
+        repeating-linear-gradient(175deg,transparent 0 23px,rgba(93,51,27,.32) 24px 26px,transparent 27px 38px);
+      pointer-events:none;
+    }
+    .chest-box::after {
+      content:""; position:absolute; inset:0;
+      background:linear-gradient(#f2cf79,#b47a2e) left top/7px 100% no-repeat,
+        linear-gradient(#f2cf79,#b47a2e) right top/7px 100% no-repeat;
+      box-shadow:inset 0 0 0 1px rgba(255,224,151,.3);
+    }
+    .chest-lid {
+      position:absolute; left:7px; right:7px; bottom:35px; height:32px; overflow:hidden;
+      border:4px solid #583622; border-radius:24px 24px 4px 4px / 22px 22px 5px 5px;
+      background:repeating-linear-gradient(0deg,#935a32 0 2px,#c1874c 2px 10px,#d5a060 10px 12px);
+      transform-origin:bottom center; transition:transform .45s ease;
+    }
+    .chest-lid::before {
+      content:""; position:absolute; inset:3px 0 0;
+      background:repeating-linear-gradient(0deg,transparent 0 8px,rgba(75,42,25,.55) 8px 10px),
+        repeating-linear-gradient(165deg,transparent 0 19px,rgba(93,51,27,.36) 20px 22px,transparent 23px 33px);
+    }
+    .chest-lid::after {
+      content:""; position:absolute; inset:0;
+      background:linear-gradient(#f2cf79,#b47a2e) left top/7px 100% no-repeat,
+        linear-gradient(#f2cf79,#b47a2e) right top/7px 100% no-repeat;
+    }
+    .chest-lock {
+      position:absolute; left:50%; bottom:15px; width:16px; height:18px;
+      transform:translateX(-50%); border:3px solid #815222; border-radius:4px 4px 5px 5px;
+      background:linear-gradient(90deg,#d89b3c,#ffe28b 45%,#ca8730); z-index:1;
+      box-shadow:0 1px 0 #f9d67b,inset 0 0 0 1px rgba(255,245,188,.55);
+    }
+    .chest-lock::after {
+      content:""; position:absolute; left:4px; top:3px; width:3px; height:7px;
+      border-radius:3px 3px 1px 1px; background:#704725;
+      box-shadow:1px 6px 0 -1px #704725;
+    }
+    .chest-button:hover .chest-lid, .chest-button:focus-visible .chest-lid { transform:translateY(-4px) rotate(-7deg); }
+    .chest-button:hover, .chest-button:focus-visible { filter:drop-shadow(0 0 9px #fff1aa) drop-shadow(0 5px 2px rgba(100,55,110,.28)); }
+    .chest-button:focus-visible { outline:3px solid #fff; outline-offset:5px; border-radius:8px; }
+    .chest-button.is-opening .chest-lid { transform:translateY(-15px) rotate(-28deg); }
+    .chest-button.is-opening { animation:chest-open .55s ease-in-out; }
+    @keyframes chest-idle { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.08)} }
+    @keyframes chest-open { 0%,100%{scale:1} 45%{scale:1.14} }
+    .chest-hint {
+      position:absolute; z-index:3; left:50%; bottom:calc(var(--floor-height) / 2 + 39px);
+      transform:translateX(-50%); white-space:nowrap; color:#fff;
+      font-size:12px; font-weight:bold; text-shadow:1px 2px 4px #9f4e9c;
+    }
+    .password-dialog {
+      width:min(90vw,420px); padding:30px; border:4px solid #fff2fb; border-radius:22px;
+      color:#64435f; text-align:center;
+      background:linear-gradient(145deg,#fffaf4,#ffe8f5 72%,#eee5ff);
+      box-shadow:0 18px 70px rgba(70,35,90,.36), inset 0 0 0 2px #e8b9dd;
+    }
+    .password-dialog::backdrop { background:rgba(54,37,85,.48); backdrop-filter:blur(5px); }
+    .password-dialog h2 { margin:0 0 9px; color:#bb579a; font-size:clamp(22px,5vw,29px); }
+    .password-dialog p { margin:0 0 19px; }
+    .password-dialog label { display:block; margin-bottom:7px; text-align:left; font-weight:bold; }
+    .password-dialog input {
+      width:100%; min-height:46px; padding:10px 12px; border:2px solid #d9a6d1;
+      border-radius:10px; background:#fff; color:#49334f; font:inherit;
+    }
+    .password-dialog input:focus-visible, .dialog-actions button:focus-visible {
+      outline:3px solid #a86ac0; outline-offset:3px;
+    }
+    .password-error { min-height:1.5em; margin:8px 0 12px !important; color:#b63d78; font-weight:bold; }
+    .dialog-actions { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+    .dialog-actions button {
+      min-height:42px; padding:9px 18px; border:0; border-radius:999px;
+      color:#fff; background:#c45d9e; font:inherit; font-weight:bold; cursor:pointer;
+    }
+    .dialog-actions button[type="button"] { color:#684d70; background:#e8d9ef; }
+    .indoor-scene {
+      color:#674c66;
+      background:
+        radial-gradient(ellipse at 50% 58%,rgba(255,237,196,.75),transparent 48%),
+        linear-gradient(180deg,#f8d9dc 0%,#f5e2df 75%,#a87981 75%,#966b78 100%);
+    }
+    .room-wall {
+      position:absolute; inset:0 0 25%;
+      background:
+        radial-gradient(ellipse at 50% 48%,rgba(255,245,207,.5),transparent 56%),
+        repeating-linear-gradient(90deg,transparent 0 119px,rgba(186,132,156,.1) 120px 123px),
+        linear-gradient(180deg,#f9e3df,#f2d8e4);
+    }
+    .room-floor {
+      position:absolute; left:0; right:0; bottom:0; height:25%;
+      border-top:7px solid #d8a5a5;
+      background:repeating-linear-gradient(90deg,transparent 0 115px,rgba(255,224,209,.17) 116px 120px),
+        repeating-linear-gradient(0deg,#a87b80 0 43px,#986d78 44px 48px);
+    }
+    .room-title {
+      position:absolute; top:3%; left:50%; transform:translateX(-50%); z-index:1;
+      margin:0; color:#9f6489; font-size:clamp(16px,3vw,25px); letter-spacing:.08em;
+      text-align:center; text-shadow:0 2px #fff4ed;
+    }
+    .wall-heart {
+      position:absolute; top:11%; left:17%; color:#dc83a9; font-size:clamp(28px,5vw,54px);
+      filter:drop-shadow(0 3px 0 #f4bbc9);
+    }
+    .fairy-lights {
+      position:absolute; top:12%; left:29%; right:29%; height:22px;
+      border-top:2px solid #d59b87; border-radius:50%;
+      background:radial-gradient(circle at 10% 10px,#ffe9a1 0 4px,transparent 5px),
+        radial-gradient(circle at 30% 7px,#fff1ba 0 4px,transparent 5px),
+        radial-gradient(circle at 50% 5px,#ffe9a1 0 4px,transparent 5px),
+        radial-gradient(circle at 70% 7px,#fff1ba 0 4px,transparent 5px),
+        radial-gradient(circle at 90% 10px,#ffe9a1 0 4px,transparent 5px);
+      filter:drop-shadow(0 0 5px #ffe8a3);
+    }
+    .projector-beam {
+      position:absolute; z-index:0; top:20%; left:50%; width:min(62vw,570px); height:48%;
+      transform:translateX(-50%);
+      background:linear-gradient(180deg,rgba(255,245,205,.22),rgba(255,244,214,.02));
+      clip-path:polygon(34% 0,66% 0,100% 100%,0 100%); pointer-events:none;
+    }
+    .screen-frame {
+      position:absolute; z-index:1; top:12%; left:50%; transform:translateX(-50%);
+      width:clamp(145px,19vw,225px); aspect-ratio:9 / 16; padding:8px;
+      border:5px solid #a27887; border-radius:10px;
+      background:#594a61; box-shadow:0 7px 0 #d3a2ac,0 0 30px rgba(255,238,186,.48);
+    }
+    .projector-screen {
+      position:relative; width:100%; height:100%; overflow:hidden;
+      display:grid; place-items:center; background:#3f374a;
+    }
+    .projector-screen video {
+      width:100%; height:100%; object-fit:contain; background:#251f30;
+    }
+    .video-placeholder {
+      position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+      align-items:center; gap:10px; padding:12px; color:#fff3e7; text-align:center;
+      background:linear-gradient(145deg,#66546d,#453d57);
+      font-size:clamp(12px,1.6vw,17px); text-shadow:0 2px 5px #251f30;
+    }
+    .video-placeholder[hidden], .projector-screen video[hidden] { display:none; }
+    .video-placeholder small { color:#f2d6e5; font-size:10px; overflow-wrap:anywhere; }
+    .media-status {
+      position:absolute; z-index:2; left:8px; right:8px; bottom:8px; margin:0; padding:5px 7px;
+      border-radius:6px; color:#fff4e7; background:rgba(55,42,66,.88);
+      font-size:11px; text-align:center;
+    }
+    .media-status[hidden] { display:none; }
+    .sofa {
+      position:absolute; z-index:2; left:50%; bottom:calc(12% - 4px); transform:translateX(-50%);
+      width:min(440px,78vw); height:156px;
+      border:5px solid #805c77; border-radius:25px 25px 15px 15px;
+      background:linear-gradient(180deg,#d991b5 0 62%,#bd789f 63%);
+      box-shadow:inset 0 -12px 0 rgba(103,62,99,.13),0 11px 0 #78566f;
+    }
+    .sofa::before {
+      content:""; position:absolute; left:-16px; right:-16px; bottom:10px; height:53px;
+      border:5px solid #805c77; border-radius:18px; background:linear-gradient(90deg,#d991b5,#e5a4c0 50%,#d991b5);
+      z-index:-1;
+    }
+    .sofa-cushion {
+      position:absolute; top:17px; width:29%; height:47px; border:3px solid #ae718f;
+      border-radius:12px; background:#f6c8d3; box-shadow:inset 0 -5px #e8afc5;
+    }
+    .sofa-cushion.left { left:12%; }
+    .sofa-cushion.right { right:12%; background:#ddc8ed; border-color:#9b7eac; box-shadow:inset 0 -5px #c4a8db; }
+    .seated-couple {
+      position:absolute; z-index:4; left:50%; bottom:calc(12% + 34px); transform:translateX(-50%);
+      display:flex; align-items:flex-end; gap:8px;
+    }
+    .indoor-character.character {
+      position:relative; inset:auto; flex:0 0 70px; width:70px; height:104px;
+      animation:none !important; filter:drop-shadow(0 3px 1px rgba(70,30,90,.2));
+    }
+    .indoor-character .name-tag { bottom:96px; font-size:10px; }
+    .indoor-character .head { top:1px; left:18px; }
+    .indoor-character.girl .head { left:17px; }
+    .indoor-character .hair { top:-4px; left:14px; }
+    .indoor-character.girl .hair { left:11px; }
+    .indoor-character .face { top:15px; left:26px; }
+    .indoor-character.girl .face { left:25px; }
+    .indoor-character .body {
+      top:32px; left:11px; width:48px; height:43px; border-radius:12px 12px 7px 7px;
+      transform:rotate(2deg); transform-origin:50% 100%; animation:none;
+    }
+    .indoor-character.girl .body { transform:rotate(-2deg); }
+    .indoor-character .legs,.indoor-character .arms { display:none; }
+    .sitting-legs { position:absolute; z-index:5; inset:0; pointer-events:none; }
+    .sitting-thigh {
+      position:absolute; top:66px; width:26px; height:13px;
+      border:3px solid #493954; border-radius:7px 8px 5px 5px;
+      background:#8bd9ff;
+    }
+    .sitting-thigh.left { left:12px; transform:rotate(8deg); }
+    .sitting-thigh.right { left:36px; transform:rotate(-7deg); }
+    .indoor-character.girl .sitting-thigh { background:#ff91c9; }
+    .sitting-shin {
+      position:absolute; top:75px; width:8px; height:15px;
+      border:2px solid #493954; border-radius:3px; background:#8bd9ff;
+    }
+    .sitting-shin.left { left:19px; }
+    .sitting-shin.right { left:48px; }
+    .indoor-character.girl .sitting-shin { background:#ff91c9; }
+    .sitting-shoe {
+      position:absolute; top:10px; left:-5px; width:15px; height:7px;
+      border:1px solid #493954; border-radius:7px 8px 3px 3px; background:#fff;
+    }
+    .transition-glow {
+      position:absolute; z-index:10; inset:0; opacity:0; visibility:hidden; pointer-events:none;
+      background:radial-gradient(circle at 50% 55%,rgba(255,248,203,.98),rgba(255,204,231,.7) 24%,rgba(208,171,255,.18) 60%,transparent 78%);
+      transition:opacity .45s ease,visibility 0s linear .45s;
+    }
+    .transition-glow.is-visible { opacity:1; visibility:visible; transition:opacity .45s ease; }
+    @media (max-width:600px) {
+      .chest-hint { font-size:10px; }
+      .password-dialog { padding:24px 20px; }
+      .room-title { top:2%; width:90%; }
+      .wall-heart { top:14%; left:8%; }
+      .fairy-lights { top:11%; left:20%; right:20%; }
+      .screen-frame { top:13%; width:min(42vw,190px); padding:6px; border-width:4px; }
+      .projector-beam { top:20%; width:88vw; height:39%; }
+      .sofa { bottom:calc(12% - 1px); width:min(360px,86vw); height:132px; }
+      .sofa::before { left:-10px; right:-10px; height:46px; }
+      .sofa-cushion { top:13px; height:40px; }
+      .seated-couple { bottom:calc(12% + 27px); gap:1px; }
+      .indoor-character.character { transform:scale(.84); transform-origin:bottom center; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    }
+    @media (max-width:600px) {
+      :root { --floor-height: 88px; }
+      .arch { width:75vw; height:30vh; min-width:0; border-width:9px; }
+      .couple-track { left:3%; right:3%; bottom:var(--floor-height); }
+      .character { transform:scale(.85); transform-origin:bottom center; }
+      .cloud.one { top:22%; left:-15%; }
+      .cloud.two { top:43%; right:-30%; }
+      .hint { bottom:calc(var(--floor-height) + 3px); font-size:9px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="world" id="world" data-scene="outdoor">
+   <section class="scene outdoor-scene is-active" id="outdoor-scene" aria-label="Outdoor heart world">
+    <div class="sky-glow"></div>
+    <div class="cloud one"></div><div class="cloud two"></div><div class="cloud three"></div>
+    <div class="title">OUR LITTLE WORLD<span class="subtitle">a tiny place full of love ♡</span></div>
+    <div class="heart" style="--x:4%;--y:23%;--s:55px;--c:#c91538;--delay:-1s">♥</div>
+    <div class="heart" style="--x:18%;--y:12%;--s:78px;--c:#f36ab2;--delay:-2s">♥</div>
+    <div class="heart" style="--x:70%;--y:13%;--s:72px;--c:#d51536;--delay:-.4s">♥</div>
+    <div class="heart" style="--x:83%;--y:39%;--s:82px;--c:#c91637;--delay:-1.6s">♥</div>
+    <div class="heart" style="--x:13%;--y:54%;--s:66px;--c:#f36ab2;--delay:-.7s">♥</div>
+    <div class="heart" style="--x:91%;--y:66%;--s:48px;--c:#f36ab2;--delay:-2.4s">♥</div>
+    <div class="balloon-layer" id="balloons"></div>
+    <div class="arch"></div>
+    <div class="couple-track">
+      <div class="character boy">
+        <span class="name-tag">PROM</span><div class="hair"></div><div class="head"></div><div class="face">• •</div><div class="arms"></div><div class="body"></div><div class="legs"><span class="leg left"><span class="shoe"></span></span><span class="leg right"><span class="shoe"></span></span></div>
+      </div>
+      <div class="character girl">
+        <span class="name-tag">JIB</span><div class="hair"></div><div class="head"></div><div class="face">• •</div><div class="arms"></div><div class="body"></div><div class="legs"><span class="leg left"><span class="shoe"></span></span><span class="leg right"><span class="shoe"></span></span></div>
+      </div>
+    </div>
+    <div class="hint">♡ FLOATING HEARTS · LITTLE ADVENTURES · FOREVER ♡</div>
+    <div class="platform"></div>
+    <button class="chest-button" id="chest-button" type="button" aria-label="Open the anniversary treasure chest">
+      <span class="chest-lid" aria-hidden="true"></span>
+      <span class="chest-box" aria-hidden="true"></span>
+      <span class="chest-lock" aria-hidden="true"></span>
+    </button>
+    <span class="chest-hint" aria-hidden="true">A little surprise ♡</span>
+   </section>
+   <section class="scene indoor-scene" id="indoor-scene" aria-label="Cozy anniversary living room" aria-hidden="true" inert>
+    <div class="room-wall"></div>
+    <div class="room-floor"></div>
+    <h1 class="room-title">OUR LITTLE MOVIE NIGHT ♡</h1>
+    <span class="wall-heart" aria-hidden="true">♥</span>
+    <div class="fairy-lights" aria-hidden="true"></div>
+    <div class="projector-beam" aria-hidden="true"></div>
+    <div class="screen-frame">
+      <div class="projector-screen">
+        <video id="anniversary-video" controls playsinline preload="metadata" hidden aria-label="Anniversary memories video"></video>
+        <div class="video-placeholder" id="video-placeholder" role="status">
+          <span>Our memories will play here ♡</span>
+          <small>Videos 1–8 play in order ♡</small>
+        </div>
+        <p class="media-status" id="media-status" role="status" aria-live="polite" hidden></p>
+      </div>
+    </div>
+    <audio id="anniversary-music" preload="metadata" loop></audio>
+    <div class="sofa" aria-hidden="true">
+      <span class="sofa-cushion left"></span><span class="sofa-cushion right"></span>
+    </div>
+    <div class="seated-couple" aria-label="Prom and Jib sitting together">
+      <div class="character boy indoor-character">
+        <span class="name-tag">PROM</span><div class="hair"></div><div class="head"></div><div class="face">• •</div><div class="arms"></div><div class="body"></div><div class="legs"><span class="leg left"><span class="shoe"></span></span><span class="leg right"><span class="shoe"></span></span></div><div class="sitting-legs"><span class="sitting-thigh left"></span><span class="sitting-thigh right"></span><span class="sitting-shin left"><span class="sitting-shoe"></span></span><span class="sitting-shin right"><span class="sitting-shoe"></span></span></div>
+      </div>
+      <div class="character girl indoor-character">
+        <span class="name-tag">JIB</span><div class="hair"></div><div class="head"></div><div class="face">• •</div><div class="arms"></div><div class="body"></div><div class="legs"><span class="leg left"><span class="shoe"></span></span><span class="leg right"><span class="shoe"></span></span></div><div class="sitting-legs"><span class="sitting-thigh left"></span><span class="sitting-thigh right"></span><span class="sitting-shin left"><span class="sitting-shoe"></span></span><span class="sitting-shin right"><span class="sitting-shoe"></span></span></div>
+      </div>
+    </div>
+   </section>
+   <div class="transition-glow" id="transition-glow" aria-hidden="true"></div>
+   <dialog class="password-dialog" id="password-dialog" aria-labelledby="dialog-title">
+    <h2 id="dialog-title">A little surprise ♡</h2>
+    <p>A little surprise is waiting for you ♡</p>
+    <form id="password-form">
+      <label for="chest-password">Your secret password</label>
+      <input id="chest-password" name="password" type="password" autocomplete="off" required aria-describedby="password-error">
+      <p class="password-error" id="password-error" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button type="submit">Enter</button>
+        <button type="button" id="close-dialog">Cancel / Close</button>
+      </div>
+    </form>
+   </dialog>
+  </main>
+  <script>
+    const world = document.getElementById('world');
+    const outdoorScene = document.getElementById('outdoor-scene');
+    const indoorScene = document.getElementById('indoor-scene');
+    const layer = document.getElementById('balloons');
+    const chestButton = document.getElementById('chest-button');
+    const dialog = document.getElementById('password-dialog');
+    const passwordForm = document.getElementById('password-form');
+    const passwordInput = document.getElementById('chest-password');
+    const passwordError = document.getElementById('password-error');
+    const closeDialogButton = document.getElementById('close-dialog');
+    const transitionGlow = document.getElementById('transition-glow');
+    const video = document.getElementById('anniversary-video');
+    const videoPlaceholder = document.getElementById('video-placeholder');
+    const videoPlaceholderMessage = videoPlaceholder.querySelector('span');
+    const mediaStatus = document.getElementById('media-status');
+    const music = document.getElementById('anniversary-music');
+    const videoClips = Array.from({ length: 8 }, (_, index) => `assets/video/${index + 1}.mp4`);
+    let currentClip = 0;
+    video.volume = 0.2;
+    music.volume = 0.4;
+    music.src = 'assets/song.mp3';
+    let musicLeadInStarted = false;
+    let musicLeadInTimer = null;
+    let ignoreLeadInPause = false;
+    const anniversaryPassword = 'Pr0mlovejib';
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let sceneState = 'outdoor';
+    let balloonInterval;
+    const balloonTimeouts = new Set();
+    const colors = ['#ef2850', '#f36ab2', '#d9143b', '#ff8ec8'];
+    function addBalloon() {
+      if (sceneState !== 'outdoor') return;
+      const balloon = document.createElement('span');
+      balloon.className = 'balloon';
+      balloon.style.setProperty('--left', `${Math.random() * 100}%`);
+      balloon.style.setProperty('--size', `${34 + Math.random() * 43}px`);
+      balloon.style.setProperty('--color', colors[Math.floor(Math.random() * colors.length)]);
+      balloon.style.setProperty('--duration', `${10 + Math.random() * 8}s`);
+      balloon.style.setProperty('--drift', `${Math.round(Math.random() * 90 - 45)}px`);
+      layer.appendChild(balloon);
+      const timeout = window.setTimeout(() => {
+        balloon.remove();
+        balloonTimeouts.delete(timeout);
+      }, 19000);
+      balloonTimeouts.add(timeout);
+    }
+    for (let i = 0; i < 16; i++) {
+      addBalloon();
+      const item = layer.lastElementChild;
+      item.style.animationDelay = `${-Math.random() * 16}s`;
+    }
+    balloonInterval = window.setInterval(addBalloon, 650);
+
+    function clearPasswordError() {
+      passwordError.textContent = '';
+      passwordInput.removeAttribute('aria-invalid');
+    }
+
+    chestButton.addEventListener('click', () => {
+      if (sceneState !== 'outdoor') return;
+      clearPasswordError();
+      passwordInput.value = '';
+      dialog.showModal();
+      passwordInput.focus();
+    });
+
+    closeDialogButton.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      dialog.close();
+    });
+    dialog.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        dialog.close();
+      }
+    });
+    dialog.addEventListener('close', () => {
+      clearPasswordError();
+      if (sceneState === 'outdoor') {
+        window.setTimeout(() => chestButton.focus(), 0);
+      }
+    });
+    passwordInput.addEventListener('input', clearPasswordError);
+
+    passwordForm.addEventListener('submit', event => {
+      event.preventDefault();
+      if (sceneState !== 'outdoor') return;
+      if (passwordInput.value !== anniversaryPassword) {
+        passwordError.textContent = 'Not quite, sweetheart. Try again ♡';
+        passwordInput.setAttribute('aria-invalid', 'true');
+        passwordInput.focus();
+        return;
+      }
+
+      clearPasswordError();
+      chestButton.disabled = true;
+      chestButton.classList.add('is-opening');
+      dialog.close();
+      window.setTimeout(beginSceneTransition, reducedMotion ? 0 : 550);
+    });
+
+    function beginSceneTransition() {
+      if (sceneState !== 'outdoor') return;
+      sceneState = 'transitioning';
+      world.dataset.scene = sceneState;
+      window.clearInterval(balloonInterval);
+      for (const timeout of balloonTimeouts) window.clearTimeout(timeout);
+      balloonTimeouts.clear();
+      layer.replaceChildren();
+      outdoorScene.classList.remove('is-active');
+      outdoorScene.setAttribute('aria-hidden', 'true');
+      outdoorScene.inert = true;
+      transitionGlow.classList.add('is-visible');
+
+      window.setTimeout(() => {
+        sceneState = 'indoor';
+        world.dataset.scene = sceneState;
+        indoorScene.inert = false;
+        indoorScene.removeAttribute('aria-hidden');
+        indoorScene.classList.add('is-active');
+        window.setTimeout(() => transitionGlow.classList.remove('is-visible'), reducedMotion ? 0 : 400);
+      }, reducedMotion ? 0 : 650);
+    }
+
+    function showMediaStatus(message) {
+      mediaStatus.textContent = message;
+      mediaStatus.hidden = false;
+    }
+
+    video.addEventListener('loadeddata', () => {
+      video.hidden = false;
+      videoPlaceholder.hidden = true;
+      videoPlaceholderMessage.textContent = 'Videos 1–8 play in order ♡';
+    });
+    video.addEventListener('error', () => {
+      video.hidden = true;
+      videoPlaceholder.hidden = false;
+      videoPlaceholderMessage.textContent = `Clip ${currentClip + 1} could not be loaded. Check assets/video/${currentClip + 1}.mp4`;
+      music.pause();
+    });
+    video.addEventListener('play', () => {
+      if (musicLeadInTimer !== null) {
+        ignoreLeadInPause = true;
+        video.pause();
+        return;
+      }
+      if (!musicLeadInStarted) {
+        musicLeadInStarted = true;
+        if (music.paused) {
+          music.play().then(() => {
+            mediaStatus.hidden = true;
+          }).catch(() => {
+            showMediaStatus('The background music could not start.');
+          });
+        }
+        ignoreLeadInPause = true;
+        video.pause();
+        musicLeadInTimer = window.setTimeout(() => {
+          musicLeadInTimer = null;
+          video.play().catch(() => {
+            showMediaStatus('Press play to start the video.');
+          });
+        }, 3000);
+        return;
+      }
+      if (music.paused) {
+        music.play().then(() => {
+          mediaStatus.hidden = true;
+        }).catch(() => {
+          showMediaStatus('The video is playing, but the background music could not start.');
+        });
+      }
+    });
+    video.addEventListener('pause', () => {
+      if (ignoreLeadInPause) {
+        ignoreLeadInPause = false;
+        return;
+      }
+      if (!video.ended) {
+        if (musicLeadInTimer !== null) {
+          window.clearTimeout(musicLeadInTimer);
+          musicLeadInTimer = null;
+        }
+        music.pause();
+      }
+    });
+    video.addEventListener('ended', () => {
+      if (currentClip === videoClips.length - 1) {
+        music.pause();
+        return;
+      }
+      currentClip += 1;
+      video.setAttribute('aria-label', `Anniversary memories video, clip ${currentClip + 1} of ${videoClips.length}`);
+      video.src = videoClips[currentClip];
+      video.load();
+      video.play().catch(() => {
+        showMediaStatus(`Clip ${currentClip + 1} is ready. Press play to continue.`);
+      });
+    });
+    music.addEventListener('error', () => {
+      showMediaStatus('The video is ready, but the background music file could not be loaded.');
+    });
+    music.addEventListener('playing', () => {
+      mediaStatus.hidden = true;
+    });
+
+    video.src = videoClips[currentClip];
+    video.setAttribute('aria-label', `Anniversary memories video, clip ${currentClip + 1} of ${videoClips.length}`);
+    video.load();
+    music.load();
+  </script>
+</body>
+</html>
